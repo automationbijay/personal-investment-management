@@ -7,6 +7,7 @@
 *   `public.vw_mf_summary_analytics`: Supplies the `adjusted_nav` and `mf_ltp` (Latest Traded Price).
 *   `public.raw_marketdepth_nepseapi_new`: Supplies the live `buy_market_depth` and `sell_market_depth` JSONB arrays.
 *   `public.analysis_config`: Supplies the noise filter threshold (`minimum_transaction_value`), the tick size (`tick_size_mf` or `tick_size_default`), and the dynamic circuit limit boundaries (`default_bid_discount_percent`, `default_ask_premium_percent`).
+*   `public.vw_profit_loss_analysis`: Supplies the user's active weighted average cost of capital (`WACC Rate`) and holdings amount (`my_quantity`) for calculating profit and loss.
 
 ## Core Logic & Mathematics
 
@@ -25,8 +26,14 @@
    *   **`my_bid_discount_premium`**: `((my_bid - adjusted_nav) / adjusted_nav) * 100`
    *   **`my_ask_discount_premium`**: `((my_ask - adjusted_nav) / adjusted_nav) * 100`
 
-4. **Circuit Limits**
+3. **Circuit Limits**
    Calculates the absolute maximum and minimum prices allowable by NEPSE for the day based on the LTP.
    *   **`lower_limit_price`**: `mf_ltp * (1 - default_bid_discount_percent / 100)`
    *   **`upper_limit_price`**: `mf_ltp * (1 + default_ask_premium_percent / 100)`
    *   **Limit Discounts/Premiums**: Evaluates how deep the discount would be if the stock hit its absolute lower circuit limit, or how high the premium if it hit the upper limit.
+
+4. **Profit and Loss Simulation**
+   Calculates the unrealized or simulated profit/loss percentage if positions were executed or held, baselined against the investor's WACC (`wacc_rate`).
+   *   **`profit_loss_pct_at_ltp`**: `((mf_ltp - wacc_rate) / wacc_rate) * 100`
+   *   **`profit_loss_pct_at_my_ask`**: `((my_ask - wacc_rate) / wacc_rate) * 100` (Simulated return if selling at the top ask price).
+   *   **`profit_loss_pct_at_my_bid`**: `((my_bid - wacc_rate) / wacc_rate) * 100` (Simulated return if buying at the top bid price, effectively averaging cost down/up).
