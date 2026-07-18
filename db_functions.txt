@@ -1,0 +1,504 @@
+--- Function: generate_tms_order_urls ---
+CREATE OR REPLACE FUNCTION public.generate_tms_order_urls()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+            DECLARE
+                buy_qty TEXT;
+                sell_qty TEXT;
+                ltp_val NUMERIC;
+                bid_disc NUMERIC;
+                ask_prem NUMERIC;
+                probing_bid NUMERIC;
+                probing_ask NUMERIC;
+            BEGIN
+                -- 1. Get configuration
+                SELECT config_value::NUMERIC INTO buy_qty FROM analysis_config WHERE config_key = 'default_debenture_buying_amount';
+                SELECT config_value::NUMERIC INTO bid_disc FROM analysis_config WHERE config_key = 'default_bid_discount_percent';
+                SELECT config_value::NUMERIC INTO ask_prem FROM analysis_config WHERE config_key = 'default_ask_premium_percent';
+                
+                IF buy_qty IS NULL THEN buy_qty := 25; END IF;
+                IF bid_disc IS NULL THEN bid_disc := 1.5; END IF;
+                IF ask_prem IS NULL THEN ask_prem := 1.5; END IF;
+
+                -- 2. Get selling quantity from current holdings
+                SELECT "Current Balance" INTO sell_qty FROM raw_meroshare_portfolio WHERE "Scrip" = NEW."Symbol";
+                IF sell_qty IS NULL THEN sell_qty := 0; END IF;
+
+                -- 3. Get LTP for probing URLs
+                SELECT NULLIF(regexp_replace("LTP", '[^0-9.]', '', 'g'), '')::NUMERIC INTO ltp_val 
+                FROM raw_deb_nepsealpha 
+                WHERE "Symbol" = NEW."Symbol";
+
+                -- A. STANDARD BID URL (Join the bid - highest_bid + 0.1)
+                IF NEW.highest_bid_price IS NOT NULL THEN
+                    NEW.my_bid_price := NEW.highest_bid_price + 0.1;
+                    NEW.highest_bid_url := 'https://tms43.nepsetms.com.np/tms/me/memberclientorderentry?symbol=' || NEW."Symbol" || '&transaction=Buy&quantity=' || buy_qty || '&price=' || NEW.my_bid_price || '&market=continuous';
+                ELSE
+                    NEW.my_bid_price := NULL;
+                    NEW.highest_bid_url := NULL;
+                END IF;
+
+                -- B. AGGRESSIVE BUY URL (Hit the ask - lowest_ask_price)
+                IF NEW.lowest_ask_price IS NOT NULL THEN
+                    NEW.buy_at_ask_url := 'https://tms43.nepsetms.com.np/tms/me/memberclientorderentry?symbol=' || NEW."Symbol" || '&transaction=Buy&quantity=' || buy_qty || '&price=' || NEW.lowest_ask_price || '&market=continuous';
+                ELSE
+                    NEW.buy_at_ask_url := NULL;
+                END IF;
+
+                -- C. STANDARD ASK URL (Join the ask - lowest_ask - 0.1)
+                IF NEW.lowest_ask_price IS NOT NULL THEN
+                    NEW.my_ask_price := NEW.lowest_ask_price - 0.1;
+                    NEW.lowest_ask_url := 'https://tms43.nepsetms.com.np/tms/me/memberclientorderentry?symbol=' || NEW."Symbol" || '&transaction=Sell&quantity=' || sell_qty || '&price=' || NEW.my_ask_price || '&market=continuous';
+                ELSE
+                    NEW.my_ask_price := NULL;
+                    NEW.lowest_ask_url := NULL;
+                END IF;
+
+                -- D. AGGRESSIVE SELL URL (Hit the bid - highest_bid_price)
+                IF NEW.highest_bid_price IS NOT NULL THEN
+                    NEW.sell_at_bid_url := 'https://tms43.nepsetms.com.np/tms/me/memberclientorderentry?symbol=' || NEW."Symbol" || '&transaction=Sell&quantity=' || sell_qty || '&price=' || NEW.highest_bid_price || '&market=continuous';
+                ELSE
+                    NEW.sell_at_bid_url := NULL;
+                END IF;
+
+                -- E. PROBING URLs (Based on LTP)
+                IF ltp_val IS NOT NULL THEN
+                    probing_bid := ROUND(ltp_val * (1 - bid_disc / 100.0), 1);
+                    probing_ask := ROUND(ltp_val * (1 + ask_prem / 100.0), 1);
+                    NEW.first_bid_price := probing_bid;
+                    NEW.first_ask_price := probing_ask;
+                    NEW.first_bid_url := 'https://tms43.nepsetms.com.np/tms/me/memberclientorderentry?symbol=' || NEW."Symbol" || '&transaction=Buy&quantity=' || buy_qty || '&price=' || probing_bid || '&market=continuous';
+                    NEW.first_ask_url := 'https://tms43.nepsetms.com.np/tms/me/memberclientorderentry?symbol=' || NEW."Symbol" || '&transaction=Sell&quantity=' || sell_qty || '&price=' || probing_ask || '&market=continuous';
+                ELSE
+                    NEW.first_bid_price := NULL;
+                    NEW.first_ask_price := NULL;
+                    NEW.first_bid_url := NULL;
+                    NEW.first_ask_url := NULL;
+                END IF;
+
+                RETURN NEW;
+            END;
+            $function$
+
+
+--- Function: refresh_urls_on_config_update ---
+CREATE OR REPLACE FUNCTION public.refresh_urls_on_config_update()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+            BEGIN
+                UPDATE public.raw_deb_marketdepth SET updated_at = NOW();
+                RETURN NULL;
+            END;
+            $function$
+
+
+--- Function: fn_refresh_mf_assets_analytics ---
+CREATE OR REPLACE FUNCTION public.fn_refresh_mf_assets_analytics()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        DECLARE
+            v_today_ltp REAL;
+        BEGIN
+            -- Fetch most recent LTP from raw_price_history
+            SELECT "LTP" INTO v_today_ltp 
+            FROM public.raw_price_history 
+            WHERE "Symbol" = COALESCE(NEW."MF", OLD."MF")
+            ORDER BY "Date" DESC LIMIT 1;
+
+            INSERT INTO public.mf_assets_analytics (
+                "Pkey", "Symbol", "Month", "total_weekly_value", "total_current_value", "total_change", "weighted_avg_change_pct", 
+                "capital_market_adj_change_pct", "Today_NAV", "Today_LTP", "Premium_Discount_Pct",
+                "sharesansar_Mutual_Fund_Name", "sharesansar_Weekly_Nav", "sharesansar_Weekly_Nav_Date", "sharesansar_Monthly_Nav", "sharesansar_Monthly_Nav_Date", "sharesansar_LTP",
+                "nepsealpha_Date_Till", "nepsealpha_Fixed_Income", "nepsealpha_Cash", "nepsealpha_Capital_Market", "nepsealpha_Non_Capital_Market",
+                "both_source_has_same_month",
+                "updated_at"
+            )
+            WITH agg AS (
+                SELECT 
+                    mvc."MF", 
+                    mvc."Month", 
+                    SUM(COALESCE(mvc."weekly Nav Value", mvc."today's Nav Value", 0)) as total_weekly, 
+                    SUM(COALESCE(mvc."today's Nav Value", mvc."weekly Nav Value", 0)) as total_current, 
+                    SUM(COALESCE(mvc."nav changed", 0)) as total_change,
+                    alloc."Capital_Market",
+                    nav."Weekly_Nav",
+                    nav."LTP" as sharesansar_ltp,
+                    nav."Mutual_Fund_Name", nav."Weekly_Nav_Date", nav."Monthly_Nav", nav."Monthly_Nav_Date",
+                    alloc."Date_Till", alloc."Fixed_Income", alloc."Cash", alloc."Non_Capital_Market"
+                FROM public.mf_assets_value_change mvc
+                LEFT JOIN public.raw_mf_sharesansar_nav nav ON mvc."MF" = nav."Symbol"
+                LEFT JOIN public.raw_mf_assets_allocation alloc ON mvc."MF" = alloc."Symbol"
+                WHERE mvc."MF" = COALESCE(NEW."MF", OLD."MF")
+                AND mvc."Month" = COALESCE(NEW."Month", OLD."Month")
+                GROUP BY mvc."MF", mvc."Month", alloc."Capital_Market", nav."Weekly_Nav", nav."LTP", nav."Mutual_Fund_Name", nav."Weekly_Nav_Date", nav."Monthly_Nav", nav."Monthly_Nav_Date", alloc."Date_Till", alloc."Fixed_Income", alloc."Cash", alloc."Non_Capital_Market"
+            ),
+            calc AS (
+                SELECT 
+                    *,
+                    CASE 
+                        WHEN total_weekly != 0 
+                        THEN (total_change / total_weekly) * 100 
+                        ELSE NULL 
+                    END as weighted_avg_change_pct,
+                    CASE
+                        WHEN total_weekly != 0 AND "Capital_Market" IS NOT NULL
+                        THEN ((total_change / total_weekly) * 100) * ("Capital_Market" / 100.0)
+                        ELSE 0
+                    END as capital_market_adj_change_pct
+                FROM agg
+            ),
+            final_calc AS (
+                SELECT 
+                    *,
+                    "Weekly_Nav" * (1 + capital_market_adj_change_pct / 100.0) as "Today_NAV"
+                FROM calc
+            )
+            SELECT 
+                "MF" || '-' || "Month",
+                "MF", "Month", total_weekly, total_current, total_change, weighted_avg_change_pct, capital_market_adj_change_pct,
+                "Today_NAV",
+                v_today_ltp,
+                CASE 
+                    WHEN "Today_NAV" != 0 AND "Today_NAV" IS NOT NULL
+                    THEN ((COALESCE(v_today_ltp, sharesansar_ltp) - "Today_NAV") / "Today_NAV") * 100
+                    ELSE NULL
+                END,
+                "Mutual_Fund_Name", "Weekly_Nav", "Weekly_Nav_Date", "Monthly_Nav", "Monthly_Nav_Date", sharesansar_ltp,
+                "Date_Till", "Fixed_Income", "Cash", "Capital_Market", "Non_Capital_Market",
+                (LOWER(REGEXP_REPLACE("Month", '[^a-zA-Z]', '', 'g')) = LOWER(REGEXP_REPLACE("Monthly_Nav_Date", '[^a-zA-Z]', '', 'g'))),
+                NOW()
+            FROM final_calc
+            ON CONFLICT ("Pkey") DO UPDATE SET
+                "Symbol" = EXCLUDED."Symbol",
+                "Month" = EXCLUDED."Month",
+                "total_weekly_value" = EXCLUDED."total_weekly_value",
+                "total_current_value" = EXCLUDED."total_current_value",
+                "total_change" = EXCLUDED."total_change",
+                "weighted_avg_change_pct" = EXCLUDED."weighted_avg_change_pct",
+                "capital_market_adj_change_pct" = EXCLUDED."capital_market_adj_change_pct",
+                "Today_NAV" = EXCLUDED."Today_NAV",
+                "Today_LTP" = EXCLUDED."Today_LTP",
+                "Premium_Discount_Pct" = EXCLUDED."Premium_Discount_Pct",
+                "sharesansar_Mutual_Fund_Name" = EXCLUDED."sharesansar_Mutual_Fund_Name",
+                "sharesansar_Weekly_Nav" = EXCLUDED."sharesansar_Weekly_Nav",
+                "sharesansar_Weekly_Nav_Date" = EXCLUDED."sharesansar_Weekly_Nav_Date",
+                "sharesansar_Monthly_Nav" = EXCLUDED."sharesansar_Monthly_Nav",
+                "sharesansar_Monthly_Nav_Date" = EXCLUDED."sharesansar_Monthly_Nav_Date",
+                "sharesansar_LTP" = EXCLUDED."sharesansar_LTP",
+                "nepsealpha_Date_Till" = EXCLUDED."nepsealpha_Date_Till",
+                "nepsealpha_Fixed_Income" = EXCLUDED."nepsealpha_Fixed_Income",
+                "nepsealpha_Cash" = EXCLUDED."nepsealpha_Cash",
+                "nepsealpha_Capital_Market" = EXCLUDED."nepsealpha_Capital_Market",
+                "nepsealpha_Non_Capital_Market" = EXCLUDED."nepsealpha_Non_Capital_Market",
+                "both_source_has_same_month" = EXCLUDED."both_source_has_same_month",
+                "updated_at" = EXCLUDED."updated_at";
+            
+            RETURN NULL;
+        END;
+        $function$
+
+
+--- Function: refresh_on_portfolio_update ---
+CREATE OR REPLACE FUNCTION public.refresh_on_portfolio_update()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+            BEGIN
+                REFRESH MATERIALIZED VIEW CONCURRENTLY deb_price_stats;
+                RETURN NULL;
+            END;
+            $function$
+
+
+--- Function: fn_sync_price_to_mf_analytics ---
+CREATE OR REPLACE FUNCTION public.fn_sync_price_to_mf_analytics()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        BEGIN
+            UPDATE public.mf_assets_analytics
+            SET "Today_LTP" = NEW."LTP",
+                "Premium_Discount_Pct" = CASE 
+                    WHEN "Today_NAV" != 0 AND "Today_NAV" IS NOT NULL
+                    THEN ((NEW."LTP" - "Today_NAV") / "Today_NAV") * 100
+                    ELSE "Premium_Discount_Pct"
+                END,
+                "updated_at" = NOW()
+            WHERE "Symbol" = NEW."Symbol";
+            RETURN NEW;
+        END;
+        $function$
+
+
+--- Function: update_updated_at_column ---
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        BEGIN
+            NEW.updated_at = NOW();
+            RETURN NEW;
+        END;
+        $function$
+
+
+--- Function: fn_sync_alloc_to_mf_analytics ---
+CREATE OR REPLACE FUNCTION public.fn_sync_alloc_to_mf_analytics()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        BEGIN
+            UPDATE public.mf_assets_analytics
+            SET "nepsealpha_Date_Till" = NEW."Date_Till",
+                "nepsealpha_Fixed_Income" = NEW."Fixed_Income",
+                "nepsealpha_Cash" = NEW."Cash",
+                "nepsealpha_Capital_Market" = NEW."Capital_Market",
+                "nepsealpha_Non_Capital_Market" = NEW."Non_Capital_Market"
+            WHERE "Symbol" = NEW."Symbol";
+            RETURN NEW;
+        END;
+        $function$
+
+
+--- Function: fn_sync_nav_to_mf_analytics ---
+CREATE OR REPLACE FUNCTION public.fn_sync_nav_to_mf_analytics()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        DECLARE
+            v_today_ltp REAL;
+            v_today_nav REAL;
+        BEGIN
+            -- Fetch most recent LTP from raw_price_history
+            SELECT "LTP" INTO v_today_ltp 
+            FROM public.raw_price_history 
+            WHERE "Symbol" = NEW."Symbol"
+            ORDER BY "Date" DESC LIMIT 1;
+
+            UPDATE public.mf_assets_analytics
+            SET "sharesansar_Mutual_Fund_Name" = NEW."Mutual_Fund_Name",
+                "sharesansar_Weekly_Nav" = NEW."Weekly_Nav",
+                "sharesansar_Weekly_Nav_Date" = NEW."Weekly_Nav_Date",
+                "sharesansar_Monthly_Nav" = NEW."Monthly_Nav",
+                "sharesansar_Monthly_Nav_Date" = NEW."Monthly_Nav_Date",
+                "sharesansar_LTP" = NEW."LTP",
+                "Today_LTP" = v_today_ltp,
+                "Today_NAV" = NEW."Weekly_Nav" * (1 + COALESCE("capital_market_adj_change_pct", 0) / 100.0),
+                "both_source_has_same_month" = (LOWER(REGEXP_REPLACE("Month", '[^a-zA-Z]', '', 'g')) = LOWER(REGEXP_REPLACE(NEW."Monthly_Nav_Date", '[^a-zA-Z]', '', 'g')))
+            WHERE "Symbol" = NEW."Symbol";
+
+            -- Update Premium_Discount_Pct after Today_NAV is set
+            UPDATE public.mf_assets_analytics
+            SET "Premium_Discount_Pct" = CASE 
+                    WHEN "Today_NAV" != 0 AND "Today_NAV" IS NOT NULL
+                    THEN ((COALESCE(v_today_ltp, "sharesansar_LTP") - "Today_NAV") / "Today_NAV") * 100
+                    ELSE "Premium_Discount_Pct"
+                END
+            WHERE "Symbol" = NEW."Symbol";
+
+            RETURN NEW;
+        END;
+        $function$
+
+
+--- Function: fn_sync_analytics_from_raw ---
+CREATE OR REPLACE FUNCTION public.fn_sync_analytics_from_raw()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        BEGIN
+            IF (TG_OP = 'INSERT') THEN
+                INSERT INTO public.mf_assets_value_change (
+                    "MF", "Symbol", "Month", quantity, "Pkey", 
+                    "weekly nav date", "weekly Nav Value", "weekly nav day ltp", "today's ltp"
+                )
+                VALUES (
+                    NEW."MF", NEW."Symbol", NEW."Month", NEW.quantity, NEW."Pkey",
+                    NEW."weekly nav date", NEW."weekly Nav Value", NEW."weekly nav day ltp", NEW."today's ltp"
+                )
+                ON CONFLICT ("Pkey") DO UPDATE SET
+                    "MF" = EXCLUDED."MF",
+                    "Symbol" = EXCLUDED."Symbol",
+                    "Month" = EXCLUDED."Month",
+                    quantity = EXCLUDED.quantity;
+                
+                -- Also fetch nav date after insert
+                UPDATE public.mf_assets_value_change m
+                SET "weekly nav date" = s."Weekly_Nav_Date"
+                FROM public.raw_mf_sharesansar_nav s
+                WHERE m."MF" = s."Symbol"
+                AND m."Pkey" = NEW."Pkey";
+                
+            ELSIF (TG_OP = 'DELETE') THEN
+                DELETE FROM public.mf_assets_value_change WHERE "Pkey" = OLD."Pkey";
+            END IF;
+            RETURN NULL;
+        END;
+        $function$
+
+
+--- Function: calculate_ytm ---
+CREATE OR REPLACE FUNCTION public.calculate_ytm(face_value numeric, coupon_rate numeric, years_to_maturity numeric, current_price numeric)
+ RETURNS numeric
+ LANGUAGE plpgsql
+ IMMUTABLE PARALLEL SAFE
+AS $function$
+            DECLARE
+                ytm NUMERIC;
+            BEGIN
+                IF current_price IS NULL OR current_price <= 0 OR years_to_maturity IS NULL OR years_to_maturity <= 0 THEN
+                    RETURN NULL;
+                END IF;
+                -- Approximation Formula: YTM = [C + (F - P) / n] / [(F + P) / 2]
+                ytm := ( (coupon_rate * face_value / 100.0) + ((face_value - current_price) / years_to_maturity) ) / ((face_value + current_price) / 2.0);
+                RETURN ROUND(ytm * 100.0, 2);
+            END;
+            $function$
+
+
+--- Function: fn_calculate_mf_asset_ltps ---
+CREATE OR REPLACE FUNCTION public.fn_calculate_mf_asset_ltps()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        DECLARE
+            v_nav_ltp REAL;
+            v_today_ltp REAL;
+        BEGIN
+            -- 1. Get LTP for the weekly nav date
+            -- Normalize weekly nav date (MM/DD/YYYY) to match raw_price_history date
+            SELECT "LTP" INTO v_nav_ltp
+            FROM public.raw_price_history
+            WHERE "Symbol" = NEW."Symbol"
+            AND "Date" = TO_DATE(NEW."weekly nav date", 'MM/DD/YYYY')
+            LIMIT 1;
+
+            -- 2. Get the most recent LTP (today's ltp)
+            SELECT "LTP" INTO v_today_ltp
+            FROM public.raw_price_history
+            WHERE "Symbol" = NEW."Symbol"
+            ORDER BY "Date" DESC
+            LIMIT 1;
+
+            -- 3. Assign values
+            NEW."weekly nav day ltp" := v_nav_ltp;
+            NEW."today's ltp" := v_today_ltp;
+            
+            -- Weekly NAV Value
+            IF (v_nav_ltp IS NOT NULL AND NEW.quantity IS NOT NULL) THEN
+                NEW."weekly Nav Value" := NEW.quantity * v_nav_ltp;
+            ELSE
+                NEW."weekly Nav Value" := NULL;
+            END IF;
+
+            -- Today's NAV Value
+            IF (v_today_ltp IS NOT NULL AND NEW.quantity IS NOT NULL) THEN
+                NEW."today's Nav Value" := NEW.quantity * v_today_ltp;
+            ELSE
+                NEW."today's Nav Value" := NULL;
+            END IF;
+
+            -- Calculate Changes
+            IF (NEW."today's Nav Value" IS NOT NULL AND NEW."weekly Nav Value" IS NOT NULL) THEN
+                NEW."nav changed" := NEW."today's Nav Value" - NEW."weekly Nav Value";
+                IF (NEW."weekly Nav Value" != 0) THEN
+                    NEW."nav changed in percentage" := (NEW."nav changed" / NEW."weekly Nav Value") * 100;
+                ELSE
+                    NEW."nav changed in percentage" := NULL;
+                END IF;
+            ELSE
+                NEW."nav changed" := NULL;
+                NEW."nav changed in percentage" := NULL;
+            END IF;
+
+            RETURN NEW;
+        END;
+        $function$
+
+
+--- Function: fn_sync_mf_nav_date ---
+CREATE OR REPLACE FUNCTION public.fn_sync_mf_nav_date()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        BEGIN
+            IF (TG_TABLE_NAME = 'raw_mf_sharesansar_nav') THEN
+                -- If NAV table updates, update all matching entries in mf_assets_value_change
+                UPDATE public.mf_assets_value_change
+                SET "weekly nav date" = NEW."Weekly_Nav_Date"
+                WHERE "MF" = NEW."Symbol";
+            ELSIF (TG_TABLE_NAME = 'raw_mf_nepsealpha_assets_lastmonth') THEN
+                -- If new asset record added, fetch nav date from sharesansar nav
+                UPDATE public.mf_assets_value_change m
+                SET "weekly nav date" = s."Weekly_Nav_Date"
+                FROM public.raw_mf_sharesansar_nav s
+                WHERE m."MF" = s."Symbol"
+                AND m."Pkey" = NEW."Pkey";
+            END IF;
+            RETURN NEW;
+        END;
+        $function$
+
+
+--- Function: fn_fetch_nav_date_on_insert ---
+CREATE OR REPLACE FUNCTION public.fn_fetch_nav_date_on_insert()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        BEGIN
+            UPDATE public.mf_assets_analytics m
+            SET "weekly nav date" = s."Weekly_Nav_Date"
+            FROM public.raw_mf_sharesansar_nav s
+            WHERE m."MF" = s."Symbol"
+            AND m."Pkey" = NEW."Pkey";
+            RETURN NEW;
+        END;
+        $function$
+
+
+--- Function: fn_update_mf_analytics_on_price_change ---
+CREATE OR REPLACE FUNCTION public.fn_update_mf_analytics_on_price_change()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+        BEGIN
+            -- Update today's ltp and today's nav value for all matching symbols
+            UPDATE public.mf_assets_value_change
+            SET "today's ltp" = NEW."LTP",
+                "today's Nav Value" = quantity * NEW."LTP",
+                "nav changed" = (quantity * NEW."LTP") - "weekly Nav Value",
+                "nav changed in percentage" = CASE 
+                    WHEN "weekly Nav Value" IS NOT NULL AND "weekly Nav Value" != 0 
+                    THEN (((quantity * NEW."LTP") - "weekly Nav Value") / "weekly Nav Value") * 100 
+                    ELSE NULL 
+                END
+            WHERE "Symbol" = NEW."Symbol";
+
+            -- Update weekly nav day ltp if the new record matches the nav date
+            UPDATE public.mf_assets_value_change
+            SET "weekly nav day ltp" = NEW."LTP",
+                "weekly Nav Value" = quantity * NEW."LTP",
+                "nav changed" = "today's Nav Value" - (quantity * NEW."LTP"),
+                "nav changed in percentage" = CASE 
+                    WHEN (quantity * NEW."LTP") != 0 
+                    THEN (("today's Nav Value" - (quantity * NEW."LTP")) / (quantity * NEW."LTP")) * 100 
+                    ELSE NULL 
+                END
+            WHERE "Symbol" = NEW."Symbol"
+            AND TO_DATE("weekly nav date", 'MM/DD/YYYY') = NEW."Date";
+
+            RETURN NEW;
+        END;
+        $function$
+
+
+--- Function: moddatetime ---
+CREATE OR REPLACE FUNCTION public.moddatetime()
+ RETURNS trigger
+ LANGUAGE c
+AS '$libdir/moddatetime', $function$moddatetime$function$
+
+

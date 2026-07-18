@@ -1,0 +1,48 @@
+{
+  "raw_price_history": [
+    "updated_at",
+    "Date",
+    "Conf",
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "LTP",
+    "Volume",
+    "Prev_Close",
+    "Turnover",
+    "Trans",
+    "VWAP",
+    "120_Days",
+    "180_Days",
+    "52_Weeks_High",
+    "52_Weeks_Low",
+    "created_at",
+    "symbol"
+  ],
+  "mf_assets_value_change": [
+    "weekly_nav_date_actual",
+    "today's Nav Value",
+    "nav changed",
+    "nav changed in percentage",
+    "created_at",
+    "quantity",
+    "weekly Nav Value",
+    "weekly nav day ltp",
+    "today's ltp",
+    "MF",
+    "symbol",
+    "Month",
+    "weekly nav date"
+  ],
+  "raw_mutual_funds": [
+    "updated_at",
+    "created_at",
+    "fund_size",
+    "maturity_date",
+    "maturity_period",
+    "symbol",
+    "source",
+    "mutual_fund_name"
+  ]
+}

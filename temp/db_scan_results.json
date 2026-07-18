@@ -1,0 +1,542 @@
+{
+  "tables": [
+    {
+      "table": "activation",
+      "rows": 0,
+      "seq_scan": 86,
+      "seq_tup_read": 86,
+      "idx_scan": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "table": "fundamental_data",
+      "rows": 0,
+      "seq_scan": 49,
+      "seq_tup_read": 12936,
+      "idx_scan": 165,
+      "idx_tup_fetch": 16992
+    },
+    {
+      "table": "raw_deb_nepsealpha_details",
+      "rows": 78,
+      "seq_scan": 3246,
+      "seq_tup_read": 252715,
+      "idx_scan": 84854,
+      "idx_tup_fetch": 76097
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_allocation",
+      "rows": 57,
+      "seq_scan": 228,
+      "seq_tup_read": 12639,
+      "idx_scan": 3707821,
+      "idx_tup_fetch": 3613365
+    },
+    {
+      "table": "raw_mf_sharesansar_nav",
+      "rows": 44,
+      "seq_scan": 157077,
+      "seq_tup_read": 4041907,
+      "idx_scan": 4477772,
+      "idx_tup_fetch": 3674968
+    },
+    {
+      "table": "raw_deb_nepseapi_marketdepth",
+      "rows": 0,
+      "seq_scan": 3050,
+      "seq_tup_read": 148235,
+      "idx_scan": 65012,
+      "idx_tup_fetch": 10970
+    },
+    {
+      "table": "analysis_config",
+      "rows": 4,
+      "seq_scan": 30,
+      "seq_tup_read": 91,
+      "idx_scan": 195451,
+      "idx_tup_fetch": 195613
+    },
+    {
+      "table": "raw_price_history",
+      "rows": 21087,
+      "seq_scan": 6951347,
+      "seq_tup_read": 106483126955,
+      "idx_scan": 140661,
+      "idx_tup_fetch": 223112
+    },
+    {
+      "table": "raw_meroshare_portfolio",
+      "rows": 32,
+      "seq_scan": 57446,
+      "seq_tup_read": 855033,
+      "idx_scan": 123964,
+      "idx_tup_fetch": 10662
+    },
+    {
+      "table": "raw_meroshare_wacc",
+      "rows": 94,
+      "seq_scan": 1753,
+      "seq_tup_read": 163783,
+      "idx_scan": 7787,
+      "idx_tup_fetch": 14464
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_lastmonth",
+      "rows": 3841,
+      "seq_scan": 873089,
+      "seq_tup_read": 313643,
+      "idx_scan": 18379,
+      "idx_tup_fetch": 13119
+    },
+    {
+      "table": "mf_assets_value_change",
+      "rows": 3841,
+      "seq_scan": 2990974,
+      "seq_tup_read": 11315409676,
+      "idx_scan": 67096,
+      "idx_tup_fetch": 1615702
+    },
+    {
+      "table": "mf_assets_analytics",
+      "rows": 60,
+      "seq_scan": 103368,
+      "seq_tup_read": 6001525,
+      "idx_scan": 2782580,
+      "idx_tup_fetch": 2784109
+    },
+    {
+      "table": "deb_price_stats",
+      "rows": 422,
+      "seq_scan": 6122,
+      "seq_tup_read": 2594866,
+      "idx_scan": 1616,
+      "idx_tup_fetch": 2027
+    },
+    {
+      "table": "raw_securities",
+      "rows": 796,
+      "seq_scan": 294,
+      "seq_tup_read": 230774,
+      "idx_scan": 14901,
+      "idx_tup_fetch": 14062
+    },
+    {
+      "table": "raw_nepseapi_live_prices",
+      "rows": 465,
+      "seq_scan": 22,
+      "seq_tup_read": 4540,
+      "idx_scan": 1637,
+      "idx_tup_fetch": 4631
+    },
+    {
+      "table": "sys_script_health",
+      "rows": 8,
+      "seq_scan": 15,
+      "seq_tup_read": 88,
+      "idx_scan": 67,
+      "idx_tup_fetch": 363
+    },
+    {
+      "table": "raw_mutual_funds",
+      "rows": 60,
+      "seq_scan": 788046,
+      "seq_tup_read": 21697921,
+      "idx_scan": 372,
+      "idx_tup_fetch": 469
+    }
+  ],
+  "foreign_keys": [
+    {
+      "table": "auth.identities",
+      "column": "user_id",
+      "referenced_table": "auth.users"
+    },
+    {
+      "table": "auth.sessions",
+      "column": "user_id",
+      "referenced_table": "auth.users"
+    },
+    {
+      "table": "auth.refresh_tokens",
+      "column": "session_id",
+      "referenced_table": "auth.sessions"
+    },
+    {
+      "table": "auth.mfa_factors",
+      "column": "user_id",
+      "referenced_table": "auth.users"
+    },
+    {
+      "table": "auth.mfa_challenges",
+      "column": "factor_id",
+      "referenced_table": "auth.mfa_factors"
+    },
+    {
+      "table": "auth.mfa_amr_claims",
+      "column": "session_id",
+      "referenced_table": "auth.sessions"
+    },
+    {
+      "table": "auth.sso_domains",
+      "column": "sso_provider_id",
+      "referenced_table": "auth.sso_providers"
+    },
+    {
+      "table": "auth.saml_providers",
+      "column": "sso_provider_id",
+      "referenced_table": "auth.sso_providers"
+    },
+    {
+      "table": "auth.saml_relay_states",
+      "column": "sso_provider_id",
+      "referenced_table": "auth.sso_providers"
+    },
+    {
+      "table": "auth.saml_relay_states",
+      "column": "flow_state_id",
+      "referenced_table": "auth.flow_state"
+    },
+    {
+      "table": "auth.one_time_tokens",
+      "column": "user_id",
+      "referenced_table": "auth.users"
+    },
+    {
+      "table": "auth.oauth_authorizations",
+      "column": "client_id",
+      "referenced_table": "auth.oauth_clients"
+    },
+    {
+      "table": "auth.oauth_authorizations",
+      "column": "user_id",
+      "referenced_table": "auth.users"
+    },
+    {
+      "table": "auth.oauth_consents",
+      "column": "user_id",
+      "referenced_table": "auth.users"
+    },
+    {
+      "table": "auth.oauth_consents",
+      "column": "client_id",
+      "referenced_table": "auth.oauth_clients"
+    },
+    {
+      "table": "auth.sessions",
+      "column": "oauth_client_id",
+      "referenced_table": "auth.oauth_clients"
+    },
+    {
+      "table": "storage.objects",
+      "column": "bucket_id",
+      "referenced_table": "storage.buckets"
+    },
+    {
+      "table": "storage.s3_multipart_uploads",
+      "column": "bucket_id",
+      "referenced_table": "storage.buckets"
+    },
+    {
+      "table": "storage.s3_multipart_uploads_parts",
+      "column": "upload_id",
+      "referenced_table": "storage.s3_multipart_uploads"
+    },
+    {
+      "table": "storage.s3_multipart_uploads_parts",
+      "column": "bucket_id",
+      "referenced_table": "storage.buckets"
+    },
+    {
+      "table": "storage.vector_indexes",
+      "column": "bucket_id",
+      "referenced_table": "storage.buckets_vectors"
+    },
+    {
+      "table": "raw_nepseapi_live_prices",
+      "column": "symbol",
+      "referenced_table": "raw_securities"
+    },
+    {
+      "table": "raw_price_history",
+      "column": "symbol",
+      "referenced_table": "raw_securities"
+    },
+    {
+      "table": "auth.webauthn_credentials",
+      "column": "user_id",
+      "referenced_table": "auth.users"
+    },
+    {
+      "table": "auth.webauthn_challenges",
+      "column": "user_id",
+      "referenced_table": "auth.users"
+    },
+    {
+      "table": "mf_assets_value_change",
+      "column": "symbol",
+      "referenced_table": "raw_price_history"
+    },
+    {
+      "table": "mf_assets_value_change",
+      "column": "weekly_nav_date_actual",
+      "referenced_table": "raw_price_history"
+    },
+    {
+      "table": "raw_meroshare_wacc",
+      "column": "symbol",
+      "referenced_table": "raw_securities"
+    },
+    {
+      "table": "raw_meroshare_portfolio",
+      "column": "symbol",
+      "referenced_table": "raw_securities"
+    },
+    {
+      "table": "raw_deb_nepseapi_marketdepth",
+      "column": "symbol",
+      "referenced_table": "raw_securities"
+    },
+    {
+      "table": "fundamental_data",
+      "column": "symbol",
+      "referenced_table": "raw_securities"
+    },
+    {
+      "table": "raw_mutual_funds",
+      "column": "symbol",
+      "referenced_table": "raw_securities"
+    },
+    {
+      "table": "mf_assets_analytics",
+      "column": "symbol",
+      "referenced_table": "raw_mutual_funds"
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_allocation",
+      "column": "symbol",
+      "referenced_table": "raw_mutual_funds"
+    },
+    {
+      "table": "raw_mf_sharesansar_nav",
+      "column": "symbol",
+      "referenced_table": "raw_mutual_funds"
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_lastmonth",
+      "column": "MF",
+      "referenced_table": "raw_mutual_funds"
+    },
+    {
+      "table": "mf_assets_value_change",
+      "column": "MF",
+      "referenced_table": "raw_mutual_funds"
+    }
+  ],
+  "indexes": [
+    {
+      "table": "mf_assets_value_change",
+      "index": "mf_assets_value_change_pkey",
+      "def": "CREATE UNIQUE INDEX mf_assets_value_change_pkey ON public.mf_assets_value_change USING btree (\"MF\", symbol)"
+    },
+    {
+      "table": "mf_assets_value_change",
+      "index": "idx_mf_assets_value_change_symbol",
+      "def": "CREATE INDEX idx_mf_assets_value_change_symbol ON public.mf_assets_value_change USING btree (symbol)"
+    },
+    {
+      "table": "mf_assets_value_change",
+      "index": "idx_mf_assets_value_change_mf",
+      "def": "CREATE INDEX idx_mf_assets_value_change_mf ON public.mf_assets_value_change USING btree (\"MF\")"
+    },
+    {
+      "table": "mf_assets_value_change",
+      "index": "idx_mf_assets_value_change_month",
+      "def": "CREATE INDEX idx_mf_assets_value_change_month ON public.mf_assets_value_change USING btree (\"Month\")"
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_lastmonth",
+      "index": "raw_mf_nepsealpha_assets_lastmonth_pkey",
+      "def": "CREATE UNIQUE INDEX raw_mf_nepsealpha_assets_lastmonth_pkey ON public.raw_mf_nepsealpha_assets_lastmonth USING btree (\"MF\", symbol, \"Month\")"
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_lastmonth",
+      "index": "idx_raw_mf_nepsealpha_assets_lastmonth_symbol",
+      "def": "CREATE INDEX idx_raw_mf_nepsealpha_assets_lastmonth_symbol ON public.raw_mf_nepsealpha_assets_lastmonth USING btree (symbol)"
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_lastmonth",
+      "index": "idx_raw_mf_nepsealpha_assets_lastmonth_mf",
+      "def": "CREATE INDEX idx_raw_mf_nepsealpha_assets_lastmonth_mf ON public.raw_mf_nepsealpha_assets_lastmonth USING btree (\"MF\")"
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_lastmonth",
+      "index": "idx_raw_mf_nepsealpha_assets_lastmonth_month",
+      "def": "CREATE INDEX idx_raw_mf_nepsealpha_assets_lastmonth_month ON public.raw_mf_nepsealpha_assets_lastmonth USING btree (\"Month\")"
+    },
+    {
+      "table": "sys_script_health",
+      "index": "sys_script_health_pkey",
+      "def": "CREATE UNIQUE INDEX sys_script_health_pkey ON public.sys_script_health USING btree (table_name)"
+    },
+    {
+      "table": "raw_nepseapi_live_prices",
+      "index": "raw_live_prices_pkey",
+      "def": "CREATE UNIQUE INDEX raw_live_prices_pkey ON public.raw_nepseapi_live_prices USING btree (symbol)"
+    },
+    {
+      "table": "raw_nepseapi_live_prices",
+      "index": "idx_raw_live_prices_symbol",
+      "def": "CREATE INDEX idx_raw_live_prices_symbol ON public.raw_nepseapi_live_prices USING btree (symbol)"
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_allocation",
+      "index": "idx_raw_mf_assets_allocation_symbol",
+      "def": "CREATE INDEX idx_raw_mf_assets_allocation_symbol ON public.raw_mf_nepsealpha_assets_allocation USING btree (symbol)"
+    },
+    {
+      "table": "raw_mf_nepsealpha_assets_allocation",
+      "index": "raw_mf_assets_allocation_pkey",
+      "def": "CREATE UNIQUE INDEX raw_mf_assets_allocation_pkey ON public.raw_mf_nepsealpha_assets_allocation USING btree (symbol)"
+    },
+    {
+      "table": "raw_mf_sharesansar_nav",
+      "index": "idx_raw_mf_sharesansar_nav_symbol",
+      "def": "CREATE INDEX idx_raw_mf_sharesansar_nav_symbol ON public.raw_mf_sharesansar_nav USING btree (symbol)"
+    },
+    {
+      "table": "raw_mf_sharesansar_nav",
+      "index": "raw_mf_sharesansar_nav_pkey",
+      "def": "CREATE UNIQUE INDEX raw_mf_sharesansar_nav_pkey ON public.raw_mf_sharesansar_nav USING btree (symbol)"
+    },
+    {
+      "table": "raw_price_history",
+      "index": "raw_price_history_pkey",
+      "def": "CREATE UNIQUE INDEX raw_price_history_pkey ON public.raw_price_history USING btree (symbol, \"Date\")"
+    },
+    {
+      "table": "raw_price_history",
+      "index": "unique_symbol_date",
+      "def": "CREATE UNIQUE INDEX unique_symbol_date ON public.raw_price_history USING btree (symbol, \"Date\")"
+    },
+    {
+      "table": "raw_price_history",
+      "index": "idx_raw_price_history_symbol",
+      "def": "CREATE INDEX idx_raw_price_history_symbol ON public.raw_price_history USING btree (symbol)"
+    },
+    {
+      "table": "raw_price_history",
+      "index": "idx_raw_price_history_date",
+      "def": "CREATE INDEX idx_raw_price_history_date ON public.raw_price_history USING btree (\"Date\")"
+    },
+    {
+      "table": "raw_deb_nepsealpha_details",
+      "index": "idx_raw_deb_nepsealpha_symbol",
+      "def": "CREATE INDEX idx_raw_deb_nepsealpha_symbol ON public.raw_deb_nepsealpha_details USING btree (symbol)"
+    },
+    {
+      "table": "raw_deb_nepsealpha_details",
+      "index": "raw_deb_nepsealpha_pkey",
+      "def": "CREATE UNIQUE INDEX raw_deb_nepsealpha_pkey ON public.raw_deb_nepsealpha_details USING btree (symbol)"
+    },
+    {
+      "table": "raw_mutual_funds",
+      "index": "raw_mutual_funds_pkey",
+      "def": "CREATE UNIQUE INDEX raw_mutual_funds_pkey ON public.raw_mutual_funds USING btree (symbol)"
+    },
+    {
+      "table": "mf_assets_analytics",
+      "index": "mf_assets_analytics_pkey",
+      "def": "CREATE UNIQUE INDEX mf_assets_analytics_pkey ON public.mf_assets_analytics USING btree (\"Pkey\")"
+    },
+    {
+      "table": "mf_assets_analytics",
+      "index": "idx_mf_assets_analytics_symbol",
+      "def": "CREATE INDEX idx_mf_assets_analytics_symbol ON public.mf_assets_analytics USING btree (symbol)"
+    },
+    {
+      "table": "mf_assets_analytics",
+      "index": "idx_mf_assets_analytics_month",
+      "def": "CREATE INDEX idx_mf_assets_analytics_month ON public.mf_assets_analytics USING btree (\"Month\")"
+    },
+    {
+      "table": "raw_meroshare_portfolio",
+      "index": "raw_my_portfolio_pkey",
+      "def": "CREATE UNIQUE INDEX raw_my_portfolio_pkey ON public.raw_meroshare_portfolio USING btree (symbol)"
+    },
+    {
+      "table": "raw_meroshare_portfolio",
+      "index": "idx_raw_meroshare_portfolio_scrip",
+      "def": "CREATE INDEX idx_raw_meroshare_portfolio_scrip ON public.raw_meroshare_portfolio USING btree (symbol)"
+    },
+    {
+      "table": "raw_meroshare_wacc",
+      "index": "raw_meroshare_wacc_pkey",
+      "def": "CREATE UNIQUE INDEX raw_meroshare_wacc_pkey ON public.raw_meroshare_wacc USING btree (symbol)"
+    },
+    {
+      "table": "raw_meroshare_wacc",
+      "index": "idx_raw_meroshare_wacc_scrip_name",
+      "def": "CREATE INDEX idx_raw_meroshare_wacc_scrip_name ON public.raw_meroshare_wacc USING btree (symbol)"
+    },
+    {
+      "table": "raw_deb_nepseapi_marketdepth",
+      "index": "raw_deb_marketdepth_pkey",
+      "def": "CREATE UNIQUE INDEX raw_deb_marketdepth_pkey ON public.raw_deb_nepseapi_marketdepth USING btree (symbol)"
+    },
+    {
+      "table": "raw_deb_nepseapi_marketdepth",
+      "index": "idx_raw_deb_marketdepth_symbol",
+      "def": "CREATE INDEX idx_raw_deb_marketdepth_symbol ON public.raw_deb_nepseapi_marketdepth USING btree (symbol)"
+    },
+    {
+      "table": "raw_securities",
+      "index": "raw_securities_symbol_key",
+      "def": "CREATE UNIQUE INDEX raw_securities_symbol_key ON public.raw_securities USING btree (symbol)"
+    },
+    {
+      "table": "raw_securities",
+      "index": "raw_securities_pkey",
+      "def": "CREATE UNIQUE INDEX raw_securities_pkey ON public.raw_securities USING btree (symbol)"
+    },
+    {
+      "table": "raw_securities",
+      "index": "idx_raw_securities_symbol",
+      "def": "CREATE INDEX idx_raw_securities_symbol ON public.raw_securities USING btree (symbol)"
+    },
+    {
+      "table": "activation",
+      "index": "activation_pkey",
+      "def": "CREATE UNIQUE INDEX activation_pkey ON public.activation USING btree (id)"
+    },
+    {
+      "table": "analysis_config",
+      "index": "analysis_config_pkey",
+      "def": "CREATE UNIQUE INDEX analysis_config_pkey ON public.analysis_config USING btree (config_key)"
+    },
+    {
+      "table": "fundamental_data",
+      "index": "fundamental_data_symbol_key",
+      "def": "CREATE UNIQUE INDEX fundamental_data_symbol_key ON public.fundamental_data USING btree (symbol)"
+    },
+    {
+      "table": "fundamental_data",
+      "index": "fundamental_data_pkey",
+      "def": "CREATE UNIQUE INDEX fundamental_data_pkey ON public.fundamental_data USING btree (symbol)"
+    },
+    {
+      "table": "fundamental_data",
+      "index": "idx_fundamental_data_symbol",
+      "def": "CREATE INDEX idx_fundamental_data_symbol ON public.fundamental_data USING btree (symbol)"
+    },
+    {
+      "table": "fundamental_data",
+      "index": "idx_fundamental_data_date",
+      "def": "CREATE INDEX idx_fundamental_data_date ON public.fundamental_data USING btree (date)"
+    },
+    {
+      "table": "deb_price_stats",
+      "index": "idx_deb_price_stats_symbol",
+      "def": "CREATE UNIQUE INDEX idx_deb_price_stats_symbol ON public.deb_price_stats USING btree (\"Symbol\")"
+    }
+  ]
+}
