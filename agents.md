@@ -18,8 +18,8 @@ The PostgreSQL database (Supabase) uses specific prefixes to distinguish between
     *   *Example*: `raw_deb_nepsealpha_details` (raw debenture parameters scraped from NEPSEAlpha).
     *   *Example*: `raw_mf_nepsealpha_dividends` (raw mutual fund expected dividends scraped from NEPSEAlpha).
 *   **`mf_` Prefix**: Holds processed data, daily valuations, and portfolio holding analytics for **Mutual Funds**.
-    *   *Example*: `mf_assets_value_change` (tracks change in value for individual stocks within mutual fund portfolios).
-    *   *Example*: `mf_assets_analytics` (stores final daily NAV estimation and discounts).
+    *   *Example*: `mf_assets_value_change` (Dynamic VIEW that tracks change in value for individual stocks).
+    *   *Example*: `vw_mf_summary_analytics` (Dynamic VIEW that stores final daily NAV estimation and discounts).
 *   **`deb_` Prefix**: Holds analytics and views for **Debentures** (bonds).
     *   *Example*: `deb_ytm_analysis` (calculates Yield to Maturity based on current live market depth).
 
@@ -54,14 +54,14 @@ We aggregate market information from four main sources:
 Since mutual funds only publish their portfolio holdings **monthly** and their NAV **weekly**, we estimate the daily NAV between publications. We assume that **no stock has been added or removed from the portfolio since the last monthly publication date**. 
 
 ### Mathematical Calculations
-Daily NAV updates are processed via database triggers and functions (`fn_refresh_mf_assets_analytics`):
+Daily NAV updates are now processed dynamically via PostgreSQL Views (`vw_mf_summary_analytics`), eliminating the need for complex trigger-based table synchronizations:
 
-1.  **Compute Individual Asset Changes** (`mf_assets_value_change`):
+1.  **Compute Individual Asset Changes** (`mf_assets_value_change` view):
     *   `weekly Nav Value` = $Quantity \times \text{Stock LTP at Weekly NAV Date}$
     *   `today's Nav Value` = $Quantity \times \text{Stock Today's LTP}$
     *   `nav changed` = $\text{today's Nav Value} - \text{weekly Nav Value}$
-    *   *Note on NAV Dates*: The column `weekly_nav_date_actual` strictly binds the valuation to the exact date the NAV was published. If a stock in the portfolio didn't trade on that specific date (e.g. a Friday), the `fn_calculate_mf_asset_ltps` trigger will look up the older traded price, auto-insert a carry-forward row into `raw_price_history` for the NAV date, and link to it.
-2.  **Aggregate Portfolio Changes** (`mf_assets_analytics`):
+    *   *Note on NAV Dates*: The valuation binds the calculation to the exact date the NAV was published using `raw_price_history`.
+2.  **Aggregate Portfolio Changes** (`vw_mf_summary_analytics` view):
     *   $\text{total\_weekly\_value} = \sum (\text{weekly Nav Value})$
     *   $\text{total\_current\_value} = \sum (\text{today's Nav Value})$
     *   $\text{total\_change} = \text{total\_current\_value} - \text{total\_weekly\_value}$
