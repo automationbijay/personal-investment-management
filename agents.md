@@ -15,6 +15,7 @@ The PostgreSQL database (Supabase) uses specific prefixes to distinguish between
     *   *Example*: `raw_nepseapi_live_prices` (Stores a single row per symbol for the latest real-time LTP. 1:1 relation to `raw_securities`).
     *   *Example*: `raw_price_history` (Stores end-of-day historical prices. 1:N relation to `raw_securities`).
     *   *Example*: `raw_mf_sharesansar_nav` (raw weekly NAV scraped from ShareSansar. 1:1 relation to `raw_mutual_funds`).
+    *   *Example*: `raw_debentures` (Master table of debentures, `symbol` is the Primary Key. Only stores symbol and timestamps; details are in child tables).
     *   *Example*: `raw_deb_nepsealpha_details` (raw debenture parameters scraped from NEPSEAlpha).
     *   *Example*: `raw_mf_nepsealpha_dividends` (raw mutual fund expected dividends scraped from NEPSEAlpha).
 *   **`mf_` Prefix**: Holds processed data, daily valuations, and portfolio holding analytics for **Mutual Funds**.
@@ -54,7 +55,7 @@ We aggregate market information from four main sources:
 Since mutual funds only publish their portfolio holdings **monthly** and their NAV **weekly**, we estimate the daily NAV between publications. We assume that **no stock has been added or removed from the portfolio since the last monthly publication date**. 
 
 ### Mathematical Calculations
-Daily NAV updates are now processed dynamically via PostgreSQL Views (`vw_mf_summary_analytics`), eliminating the need for complex trigger-based table synchronizations:
+Daily NAV updates are now processed dynamically via PostgreSQL Views (`vw_mf_summary_analytics`), eliminating the need for complex trigger-based table synchronizations. These views MUST be created with `WITH (security_invoker = true)` to ensure they respect the underlying Row Level Security (RLS) policies of the raw data tables:
 
 1.  **Compute Individual Asset Changes** (`mf_assets_value_change` view):
     *   `weekly Nav Value` = $Quantity \times \text{Stock LTP at Weekly NAV Date}$
@@ -99,10 +100,11 @@ The analysis view maps live market depth to multiple YTM scenarios:
 ---
 
 ## 6. Guidelines for Scripting and Database Sync
+*   **Repository URL**: The GitHub repository for this project is `https://github.com/automationbijay/personal-investment-management.git`.
 *   **Environment**: Always use `.env` containing `DATABASE_URL` in the project root. Never hardcode database credentials.
 *   **Language**: Python is the preferred scripting language.
 *   **Scraping & Automation**: Use Playwright for browser automation scripts. Prefer scheduling tasks via Windmill or GitHub Actions rather than long-running local daemons.
-*   **Database Synchronization**: Rely on Postgres triggers to auto-update analytics when prices change (`fn_update_mf_analytics_on_price_change`).
+*   **Database Synchronization**: Rely on dynamic PostgreSQL views (e.g., `vw_mf_summary_analytics`) instead of legacy trigger-based architecture for daily analytics updates. Avoid using complex triggers that update aggregate tables to prevent database locks and overhead.
     *   **Health Tracking**: All `raw_` tables have a `trg_auto_health` statement-level trigger attached. This automatically UPSERTs the latest execution time and a `SUCCESS (Auto-Trigger)` status into `sys_script_health` upon any `INSERT` or `UPDATE`. This removes the need for manual logging from external scripts or n8n workflows.
     *   **Foreign Key Auto-resolution**: `raw_meroshare_portfolio` has a `trg_ensure_security_exists` trigger that auto-inserts any missing `symbol` into the parent `raw_securities` table (calculating the next `id`) to prevent foreign key constraint violations from unrecognized stocks.
 *   **Folder Structure**: 
@@ -117,3 +119,4 @@ The analysis view maps live market depth to multiple YTM scenarios:
 *   **No Redundant Indexes**: PostgreSQL automatically creates a B-tree index for `PRIMARY KEY` and `UNIQUE` constraints. Agents MUST NOT create duplicate manual indexes (e.g., `CREATE INDEX idx_symbol ON table (symbol)`) if the column is already a Primary Key or Unique Key. Redundant indexes slow down `INSERT/UPDATE` operations.
 *   **Index Left-Prefix**: Do not create single-column indexes if a composite index already covers that column as its first (left-most) key (e.g., if a PK is `(MF, symbol)`, an index on `(MF)` is redundant).
 *   **Foreign Key Indexes**: Always create indexes for columns that act as Foreign Keys to avoid sequential scans during cascading operations or joins (e.g., `CREATE INDEX ON table (foreign_key_column)`).
+*   **Secondary Indexes**: Avoid creating standard secondary indexes on columns that are rarely used for filtering on their own, especially if they are already covered by a composite primary key, to reduce storage footprint and `INSERT`/`UPDATE` overhead.
