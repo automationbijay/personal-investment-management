@@ -36,6 +36,17 @@ This glossary defines domain-specific financial, database, and system terms used
 *   **Definition**: The average purchase price of shares/debentures in a user's portfolio, accounting for multiple buy transactions and charges.
 *   **Use Case**: Sourced from MeroShare to evaluate personal net profit/loss and trigger personalized buy/sell actions.
 
+### 7. Ticker Ahead Strategy
+*   **Definition**: A simulated trading approach where an order is placed exactly one tick (`0.01` NPR or as configured via `tick_size_mf`) better than the current highest bid or lowest ask. 
+*   **Use Case**: Used in `mf_ask_bid` and debenture YTM to estimate execution probabilities and compute best-case premium/discounts.
+
+### 8. Minimum Transaction Value
+*   **Definition**: A noise-filtering threshold defined in `analysis_config`. Orders in the market depth where `quantity * price` is below this value are ignored when determining the highest bid or lowest ask.
+
+### 9. Circuit Limits & Fallbacks
+*   **Definition**: The absolute upper and lower price boundaries dynamically configured via `default_ask_premium_percent` and `default_bid_discount_percent` in `analysis_config`. 
+*   **Use Case**: Used to calculate `lower_limit_price` and `upper_limit_price` directly from the LTP. Also serves as fallback pricing when the real-time order book depth is entirely empty.
+
 ---
 
 ## Data & System Terms

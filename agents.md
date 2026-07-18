@@ -18,9 +18,11 @@ The PostgreSQL database (Supabase) uses specific prefixes to distinguish between
     *   *Example*: `raw_debentures` (Master table of debentures, `symbol` is the Primary Key. Only stores symbol and timestamps; details are in child tables).
     *   *Example*: `raw_deb_nepsealpha_details` (raw debenture parameters scraped from NEPSEAlpha).
     *   *Example*: `raw_mf_nepsealpha_dividends` (raw mutual fund expected dividends scraped from NEPSEAlpha).
+    *   *Example*: `raw_marketdepth_nepseapi_new` (Stores JSON arrays of full market depth (buy/sell) per symbol scraped from NEPSE API).
 *   **`mf_` Prefix**: Holds processed data, daily valuations, and portfolio holding analytics for **Mutual Funds**.
     *   *Example*: `mf_assets_value_change` (Dynamic VIEW that tracks change in value for individual stocks).
     *   *Example*: `vw_mf_summary_analytics` (Dynamic VIEW that stores final daily NAV estimation and discounts).
+    *   *Example*: `mf_ask_bid` (Dynamic VIEW that calculates premium/discount % by simulating optimal ticker-ahead bid/ask orders based on live market depth, whilst filtering by `minimum_transaction_value` and mapping dynamic circuit limits from `analysis_config`).
 *   **`deb_` Prefix**: Holds analytics and views for **Debentures** (bonds).
     *   *Example*: `deb_ytm_analysis` (calculates Yield to Maturity based on current live market depth).
 
@@ -38,7 +40,7 @@ We aggregate market information from four main sources:
     *   *Purpose*: User portfolio holdings (`raw_meroshare_portfolio`) and weighted average cost of capital (`raw_meroshare_wacc`) to calculate personal gains and investment signals.
 4.  **NEPSE API (`neps.puribijay.com.np`)**
     *   *Purpose*: Self-hosted API fetching live transaction prices, real-time market depth (bids/asks) from Nepal Stock Exchange (`nepalstock.com`), and the master Security List.
-    *   *Table*: `raw_deb_nepseapi_marketdepth`, `raw_securities`, `raw_nepseapi_live_prices`
+    *   *Table*: `raw_deb_nepseapi_marketdepth`, `raw_securities`, `raw_nepseapi_live_prices`, `raw_marketdepth_nepseapi_new`
 
 ---
 
