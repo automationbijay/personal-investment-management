@@ -1,7 +1,7 @@
-# View: `mf_assets_value_change`
+# View: `view_mf_assets_value_change`
 
 ## Overview
-`mf_assets_value_change` acts as the foundational calculation layer for estimating mutual fund NAV. It maps the individual stock holdings of every mutual fund (published monthly) and computes the exact monetary difference in value between the date the last NAV was published (weekly) and today's live market prices.
+`view_mf_assets_value_change` acts as the foundational calculation layer for estimating mutual fund NAV. It maps the individual stock holdings of every mutual fund (published monthly) and computes the exact monetary difference in value between the date the last NAV was published (weekly) and today's live market prices.
 
 ## Dependencies
 *   `public.raw_mf_nepsealpha_assets_lastmonth`: Provides the quantity of each stock held by a mutual fund (monthly granularity).

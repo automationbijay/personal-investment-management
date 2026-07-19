@@ -1,10 +1,10 @@
-# View: `vw_mf_summary_analytics`
+# View: `view_mf_summary_analytics`
 
 ## Overview
-`vw_mf_summary_analytics` is the core valuation engine for Mutual Funds within the system. Since mutual funds in Nepal only publish their actual Net Asset Value (NAV) weekly, this view dynamically estimates the NAV daily based on the fluctuating values of the underlying assets held in their portfolio.
+`view_mf_summary_analytics` is the core valuation engine for Mutual Funds within the system. Since mutual funds in Nepal only publish their actual Net Asset Value (NAV) weekly, this view dynamically estimates the NAV daily based on the fluctuating values of the underlying assets held in their portfolio.
 
 ## Dependencies
-*   `public.mf_assets_value_change`: Provides the granular calculation of how much the value of each individual stock in a mutual fund's portfolio has changed since the last official weekly NAV publication date.
+*   `public.view_mf_assets_value_change`: Provides the granular calculation of how much the value of each individual stock in a mutual fund's portfolio has changed since the last official weekly NAV publication date.
 *   `public.raw_mutual_funds`: The master table of mutual funds.
 *   `public.raw_mf_sharesansar_nav`: The raw, official weekly NAV data scraped from ShareSansar.
 *   `public.raw_nepseapi_live_prices`: Supplies the Latest Traded Price (LTP) of the mutual fund itself.
@@ -12,7 +12,7 @@
 ## Core Logic & Mathematics
 
 1. **Portfolio Aggregation**
-   The view aggregates the individual asset changes calculated in `mf_assets_value_change`.
+   The view aggregates the individual asset changes calculated in `view_mf_assets_value_change`.
    *   `total_weekly_value = SUM(weekly_nav_value)`
    *   `total_current_value = SUM(today_nav_value)`
    *   `total_change = total_current_value - total_weekly_value`

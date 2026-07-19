@@ -16,16 +16,16 @@ def create_view():
     try:
         print("Dropping old table and previous view...")
         cur.execute("DROP VIEW IF EXISTS vw_mf_asset_valuation_comparison CASCADE;")
-        cur.execute("DROP VIEW IF EXISTS vw_mf_summary_analytics CASCADE;")
+        cur.execute("DROP VIEW IF EXISTS view_mf_summary_analytics CASCADE;")
         try:
-            cur.execute("DROP TABLE IF EXISTS mf_assets_value_change CASCADE;")
+            cur.execute("DROP TABLE IF EXISTS view_mf_assets_value_change CASCADE;")
         except psycopg2.errors.WrongObjectType:
             conn.rollback() # Rollback the failed transaction block
-            cur.execute("DROP VIEW IF EXISTS mf_assets_value_change CASCADE;")
+            cur.execute("DROP VIEW IF EXISTS view_mf_assets_value_change CASCADE;")
         
-        print("Creating view mf_assets_value_change...")
+        print("Creating view view_mf_assets_value_change...")
         cur.execute("""
-            CREATE OR REPLACE VIEW mf_assets_value_change AS
+            CREATE OR REPLACE VIEW view_mf_assets_value_change AS
             SELECT 
                 ast."MF",
                 ast."symbol",
@@ -53,9 +53,9 @@ def create_view():
                 ON ast."symbol" = live."symbol";
         """)
         
-        print("Creating aggregated view vw_mf_summary_analytics...")
+        print("Creating aggregated view view_mf_summary_analytics...")
         cur.execute("""
-            CREATE OR REPLACE VIEW vw_mf_summary_analytics AS
+            CREATE OR REPLACE VIEW view_mf_summary_analytics AS
             WITH aggregated AS (
                 SELECT
                     "MF",
@@ -77,7 +77,7 @@ def create_view():
                     MAX("Monthly_Nav_Date") AS "Monthly Nav Month",
                     
                     COUNT(CASE WHEN price_on_weekly_nav IS NULL OR todays_ltp IS NULL THEN 1 END) AS "skipped scripts due to no price data"
-                FROM mf_assets_value_change
+                FROM view_mf_assets_value_change
                 GROUP BY "MF"
             ),
             nav_calculated AS (
@@ -108,7 +108,7 @@ def create_view():
                      ELSE NULL END)::numeric, 2) AS "discount_premium_cap_market"
             FROM nav_calculated n;
         """)
-        print("Successfully recreated mf_assets_value_change and created vw_mf_summary_analytics.")
+        print("Successfully recreated view_mf_assets_value_change and created view_mf_summary_analytics.")
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")

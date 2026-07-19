@@ -1,7 +1,7 @@
-# View: `deb_ytm_analysis`
+# View: `view_deb_ytm_analysis`
 
 ## Overview
-`deb_ytm_analysis` is responsible for calculating the Yield to Maturity (YTM) for all listed debentures. Rather than just calculating a single YTM based on the Latest Traded Price (LTP), this view evaluates multiple market depth scenarios to show the user exactly what yield they will lock in if they execute immediately against the order book, or if they place a bid slightly ahead of the market.
+`view_deb_ytm_analysis` is responsible for calculating the Yield to Maturity (YTM) for all listed debentures. Rather than just calculating a single YTM based on the Latest Traded Price (LTP), this view evaluates multiple market depth scenarios to show the user exactly what yield they will lock in if they execute immediately against the order book, or if they place a bid slightly ahead of the market.
 
 ## Dependencies
 *   `public.raw_deb_nepsealpha_details`: Provides foundational debenture parameters such as `interest_rate`, `face_value` (1000), and `remaining_period_years`.

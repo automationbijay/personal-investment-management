@@ -1,7 +1,7 @@
-# View: `vw_profit_loss_analysis`
+# Table: `wiki_profit_loss_analysis`
 
 ## Overview
-`vw_profit_loss_analysis` calculates the real-time profit and loss (PnL) for a user's personal investment portfolio. By combining the user's weighted average cost of capital (WACC) with the live market pricing, it delivers immediate insight into realized and unrealized gains for each security held.
+`wiki_profit_loss_analysis` is a PostgreSQL table designed to provide a real-time, consolidated view of an investor's unrealized profit or loss (PnL) for their entire stock portfolio. It is populated by a recurring Python sync script (`populate_profit_loss.py`).
 
 ## Dependencies
 *   `public.raw_meroshare_portfolio`: Provides the quantity of shares held by the user for each security (`symbol`).

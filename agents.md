@@ -19,12 +19,13 @@ The PostgreSQL database (Supabase) uses specific prefixes to distinguish between
     *   *Example*: `raw_deb_nepsealpha_details` (raw debenture parameters scraped from NEPSEAlpha).
     *   *Example*: `raw_mf_nepsealpha_dividends` (raw mutual fund expected dividends scraped from NEPSEAlpha).
     *   *Example*: `raw_marketdepth_nepseapi_new` (Stores JSON arrays of full market depth (buy/sell) per symbol scraped from NEPSE API).
-*   **`mf_` Prefix**: Holds processed data, daily valuations, and portfolio holding analytics for **Mutual Funds**.
-    *   *Example*: `mf_assets_value_change` (Dynamic VIEW that tracks change in value for individual stocks).
-    *   *Example*: `vw_mf_summary_analytics` (Dynamic VIEW that stores final daily NAV estimation and discounts).
-    *   *Example*: `mf_ask_bid` (Dynamic VIEW that calculates premium/discount % by simulating optimal ticker-ahead bid/ask orders based on live market depth, whilst filtering by `minimum_transaction_value` and mapping dynamic circuit limits from `analysis_config`).
-*   **`deb_` Prefix**: Holds analytics and views for **Debentures** (bonds).
-    *   *Example*: `deb_ytm_analysis` (calculates Yield to Maturity based on current live market depth).
+*   **`wiki_` Prefix**: Holds derived tables containing calculated or aggregated metrics based on other tables.
+    *   *Example*: `wiki_average` (Calculated moving averages and technical indicators from `raw_price_history`).
+*   **`view_` Prefix**: Used for all database views.
+    *   *Example*: `view_mf_assets_value_change` (Dynamic VIEW that tracks change in value for individual stocks).
+    *   *Example*: `view_mf_summary_analytics` (Dynamic VIEW that stores final daily NAV estimation and discounts).
+    *   *Example*: `view_mf_ask_bid` (Dynamic VIEW that calculates premium/discount % by simulating optimal ticker-ahead bid/ask orders based on live market depth).
+    *   *Example*: `view_deb_ytm_analysis` (calculates Yield to Maturity based on current live market depth).
 
 ---
 
@@ -38,8 +39,9 @@ We aggregate market information from four main sources:
     *   *Purpose*: Monthly mutual fund asset portfolios/stock holdings (`raw_mf_nepsealpha_assets_lastmonth`), asset allocations (`raw_mf_nepsealpha_assets_allocation`), and debenture details (`raw_deb_nepsealpha_details`).
 3.  **MeroShare (`meroshare.com`)**
     *   *Purpose*: User portfolio holdings (`raw_meroshare_portfolio`) and weighted average cost of capital (`raw_meroshare_wacc`) to calculate personal gains and investment signals.
-4.  **NEPSE API (`neps.puribijay.com.np`)**
-    *   *Purpose*: Self-hosted API fetching live transaction prices, real-time market depth (bids/asks) from Nepal Stock Exchange (`nepalstock.com`), and the master Security List.
+4.  **NEPSE API (`neps.puribijay.com.np` / `nepse.puribijay.com.np`)**
+    *   *Purpose*: Self-hosted API fetching live transaction prices, real-time market depth (bids/asks) from Nepal Stock Exchange (`nepalstock.com`), and the master Security List. Fallback automatically to `nepse.` if `neps.` is down.
+    *   *Market Status*: The endpoint `/IsNepseOpen` is polled daily at 11:00 AM by an Edge Function to set the `is_market_open` key in the `analysis_config` table. Other scrapers check this key to abort execution if the market is closed.
     *   *Table*: `raw_deb_nepseapi_marketdepth`, `raw_securities`, `raw_nepseapi_live_prices`, `raw_marketdepth_nepseapi_new`
 
 ---
@@ -57,14 +59,14 @@ We aggregate market information from four main sources:
 Since mutual funds only publish their portfolio holdings **monthly** and their NAV **weekly**, we estimate the daily NAV between publications. We assume that **no stock has been added or removed from the portfolio since the last monthly publication date**. 
 
 ### Mathematical Calculations
-Daily NAV updates are now processed dynamically via PostgreSQL Views (`vw_mf_summary_analytics`), eliminating the need for complex trigger-based table synchronizations. These views MUST be created with `WITH (security_invoker = true)` to ensure they respect the underlying Row Level Security (RLS) policies of the raw data tables:
+Daily NAV updates are now processed dynamically via PostgreSQL Views (`view_mf_summary_analytics`), eliminating the need for complex trigger-based table synchronizations. These views MUST be created with `WITH (security_invoker = true)` to ensure they respect the underlying Row Level Security (RLS) policies of the raw data tables:
 
-1.  **Compute Individual Asset Changes** (`mf_assets_value_change` view):
+1.  **Compute Individual Asset Changes** (`view_mf_assets_value_change` view):
     *   `weekly Nav Value` = $Quantity \times \text{Stock LTP at Weekly NAV Date}$
     *   `today's Nav Value` = $Quantity \times \text{Stock Today's LTP}$
     *   `nav changed` = $\text{today's Nav Value} - \text{weekly Nav Value}$
     *   *Note on NAV Dates*: The valuation binds the calculation to the exact date the NAV was published using `raw_price_history`.
-2.  **Aggregate Portfolio Changes** (`vw_mf_summary_analytics` view):
+2.  **Aggregate Portfolio Changes** (`view_mf_summary_analytics` view):
     *   $\text{total\_weekly\_value} = \sum (\text{weekly Nav Value})$
     *   $\text{total\_current\_value} = \sum (\text{today's Nav Value})$
     *   $\text{total\_change} = \text{total\_current\_value} - \text{total\_weekly\_value}$
@@ -92,7 +94,7 @@ Where:
 *   $P$ = Price of the debenture (evaluated at LTP, Ask price, Bid price, or custom Bid/Ask +/- 0.1 margins)
 *   $n$ = Remaining years to maturity = $\text{Remaining\_Period\_Years}$
 
-### Views and Outputs (`deb_ytm_analysis`)
+### Views and Outputs (`view_deb_ytm_analysis`)
 The analysis view maps live market depth to multiple YTM scenarios:
 *   `buy_at_ask_ytm`: YTM if bought immediately at the lowest ask price.
 *   `sell_at_bid_ytm`: YTM if sold immediately at the highest bid price.
@@ -104,15 +106,25 @@ The analysis view maps live market depth to multiple YTM scenarios:
 ## 6. Guidelines for Scripting and Database Sync
 *   **Repository URL**: The GitHub repository for this project is `https://github.com/automationbijay/personal-investment-management.git`.
 *   **Environment**: Always use `.env` containing `DATABASE_URL` in the project root. Never hardcode database credentials.
-*   **Language**: Python is the preferred scripting language.
-*   **Scraping & Automation**: Use Playwright for browser automation scripts. Prefer scheduling tasks via Windmill or GitHub Actions rather than long-running local daemons.
-*   **Database Synchronization**: Rely on dynamic PostgreSQL views (e.g., `vw_mf_summary_analytics`) instead of legacy trigger-based architecture for daily analytics updates. Avoid using complex triggers that update aggregate tables to prevent database locks and overhead.
-    *   **Health Tracking**: All `raw_` tables have a `trg_auto_health` statement-level trigger attached. This automatically UPSERTs the latest execution time and a `SUCCESS (Auto-Trigger)` status into `sys_script_health` upon any `INSERT` or `UPDATE`. This removes the need for manual logging from external scripts or n8n workflows.
-    *   **Foreign Key Auto-resolution**: `raw_meroshare_portfolio` has a `trg_ensure_security_exists` trigger that auto-inserts any missing `symbol` into the parent `raw_securities` table (calculating the next `id`) to prevent foreign key constraint violations from unrecognized stocks.
+*   **Language**: Python is the preferred scripting language for local analysis, but Deno/TypeScript is used for Supabase Edge Functions.
+*   **Scraping & Automation**: 
+    *   **Internal Data Syncs**: Rely entirely on native PostgreSQL functions scheduled natively via `pg_cron`.
+    *   **Simple API Fetches**: Port simple `GET`/`POST` scrapers (that do not require a browser) to Supabase Edge Functions (Deno/TypeScript) and schedule them via Supabase Cron.
+    *   **Heavy Browser Scraping**: Use Python with Playwright. Schedule these tasks via Windmill or GitHub Actions rather than long-running local daemons.
+*   **Database Synchronization**: Rely on dynamic PostgreSQL views (e.g., `view_mf_summary_analytics`) instead of legacy trigger-based architecture for daily analytics updates. Avoid using complex triggers that update aggregate tables to prevent database locks and overhead.
+    *   **Trigger Naming Convention**: To organize triggers in the Supabase UI logically, all trigger names MUST strictly follow these categorical prefixes:
+        *   `health_` (e.g. `health_auto`): For script execution/health logging.
+        *   `timestamp_` (e.g. `timestamp_auto`): For `updated_at` modification updates.
+        *   `pnl_` (e.g. `pnl_sync`): For portfolio/WACC Profit and Loss syncing.
+        *   `analytics_` (e.g. `analytics_sync`): For triggering analytics/view recalculations.
+        *   `fks_` (e.g. `fks_ensure`): For automatically creating missing foreign key dependencies.
+        *   `config_` (e.g. `config_refresh`): For URL generation or settings refreshes.
+    *   **Health Tracking**: All `raw_` tables have a `health_auto` statement-level trigger attached. This automatically UPSERTs the latest execution time and a `SUCCESS (Auto-Trigger)` status into `sys_script_health` upon any `INSERT` or `UPDATE`. This removes the need for manual logging from external scripts or n8n workflows.
+    *   **Foreign Key Auto-resolution**: `raw_meroshare_portfolio` has a `fks_ensure` trigger that auto-inserts any missing `symbol` into the parent `raw_securities` table (calculating the next `id`) to prevent foreign key constraint violations from unrecognized stocks.
 *   **Folder Structure**: 
     *   Store all temporary scripts, one-off test scripts, and scratch files in the `temp/` folder.
     *   Store all deprecated files, old CSVs, and replaced logic in the `archive/` folder.
-    *   Store scripts designed to scrape or sync data from other sources to the database in the `scripts/sync_data/` folder.
+    *   Store scripts designed to scrape or sync data from other sources to the database in the `scripts/sync_data/` folder. For Edge Functions, use `supabase/functions/`.
     *   Keep the project root clean with only active code, `.env`, and `.gitignore`.
 
 ---

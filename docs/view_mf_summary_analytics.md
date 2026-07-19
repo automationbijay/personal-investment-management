@@ -1,8 +1,8 @@
-# Mutual Fund Summary Analytics (`vw_mf_summary_analytics`)
+# Mutual Fund Summary Analytics (`view_mf_summary_analytics`)
 
-The `vw_mf_summary_analytics` is a comprehensive PostgreSQL View designed to aggregate granular stock-level portfolio changes and estimate the real-time Net Asset Value (NAV) of mutual funds between their official publication dates. 
+The `view_mf_summary_analytics` is a comprehensive PostgreSQL View designed to aggregate granular stock-level portfolio changes and estimate the real-time Net Asset Value (NAV) of mutual funds between their official publication dates. 
 
-It relies on a foundational view (`mf_assets_value_change`) to handle individual asset pricing, and then aggregates that data to the fund level.
+It relies on a foundational view (`view_mf_assets_value_change`) to handle individual asset pricing, and then aggregates that data to the fund level.
 
 ---
 

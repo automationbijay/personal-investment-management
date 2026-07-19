@@ -38,7 +38,7 @@ This glossary defines domain-specific financial, database, and system terms used
 
 ### 7. Ticker Ahead Strategy
 *   **Definition**: A simulated trading approach where an order is placed exactly one tick (`0.01` NPR or as configured via `tick_size_mf`) better than the current highest bid or lowest ask. 
-*   **Use Case**: Used in `mf_ask_bid` and debenture YTM to estimate execution probabilities and compute best-case premium/discounts.
+*   **Use Case**: Used in `view_mf_ask_bid` and debenture YTM to estimate execution probabilities and compute best-case premium/discounts.
 
 ### 8. Minimum Transaction Value
 *   **Definition**: A noise-filtering threshold defined in `analysis_config`. Orders in the market depth where `quantity * price` is below this value are ignored when determining the highest bid or lowest ask.

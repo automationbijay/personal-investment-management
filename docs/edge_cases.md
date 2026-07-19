@@ -3,13 +3,13 @@
 This document tracks known edge cases, weird market scenarios, and specific fallback logic implemented in the database triggers and scripts to keep the data synchronized.
 
 ## 1. Mutual Fund Zero-History Fallback (NAV Date Constraint) [DEPRECATED]
-**Note**: *This section applies to the legacy trigger-based architecture. `mf_assets_value_change` is now a dynamically generated `VIEW`, eliminating these foreign key constraint issues entirely.*
+**Note**: *This section applies to the legacy trigger-based architecture. `view_mf_assets_value_change` is now a dynamically generated `VIEW`, eliminating these foreign key constraint issues entirely.*
 
 **Scenario**: 
 A mutual fund portfolio (e.g., from `raw_mf_nepsealpha_assets_lastmonth`) contains a newly listed stock (like `FOWADP`) that started trading *after* the mutual fund's published NAV date. 
 
 **The Legacy Problem**: 
-The old physical `mf_assets_value_change` table had a strict foreign key constraint (`fk_mf_assets_price_history`). When a trigger tried to look backwards to find the last traded price, it found nothing (NULL), crashing the import. This was solved by dynamically inserting "dummy" fallback rows into `raw_price_history`. Now, the dynamic view simply uses `LEFT JOIN` on dates, safely rendering missing historical dates as `NULL` without crashing.
+The old physical `view_mf_assets_value_change` table had a strict foreign key constraint (`fk_mf_assets_price_history`). When a trigger tried to look backwards to find the last traded price, it found nothing (NULL), crashing the import. This was solved by dynamically inserting "dummy" fallback rows into `raw_price_history`. Now, the dynamic view simply uses `LEFT JOIN` on dates, safely rendering missing historical dates as `NULL` without crashing.
 
 ## 2. Trigger Recursion ("tuple already modified" error) [DEPRECATED]
 **Note**: *This section applies to the legacy trigger-based architecture. Since analytics are now processed dynamically via views, this trigger recursion loop no longer exists.*

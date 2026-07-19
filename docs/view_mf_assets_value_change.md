@@ -1,10 +1,10 @@
-# Mutual Fund Asset Value Change (`mf_assets_value_change`)
+# Mutual Fund Asset Value Change (`view_mf_assets_value_change`)
 
-The `mf_assets_value_change` is a foundational PostgreSQL View that tracks the precise performance of every individual stock holding inside a mutual fund's equity portfolio.
+The `view_mf_assets_value_change` is a foundational PostgreSQL View that tracks the precise performance of every individual stock holding inside a mutual fund's equity portfolio.
 
 It bridges the gap between the static monthly portfolio disclosures and real-time market data by calculating the exact monetary gain or loss for each stock since the mutual fund last published its Weekly NAV. 
 
-This view serves as the base data layer that feeds into the aggregated `vw_mf_summary_analytics` view.
+This view serves as the base data layer that feeds into the aggregated `view_mf_summary_analytics` view.
 
 ---
 

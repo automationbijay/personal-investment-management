@@ -1,13 +1,14 @@
-# View: `mf_ask_bid`
+# View: `view_mf_ask_bid`
 
 ## Overview
-`mf_ask_bid` is a dynamic PostgreSQL view designed to identify real-time pricing opportunities for Mutual Funds based on live NEPSE order book data. It calculates the precise discount or premium available if a user were to execute a "Ticker Ahead" strategy (beating the best bidder or seller by exactly one tick) or if they trade at the absolute daily circuit limits.
+`view_mf_ask_bid` is a dynamic PostgreSQL view designed to identify real-time pricing opportunities for Mutual Funds based on live NEPSE order book data. It calculates the precise discount or premium available if a user were to execute a "Ticker Ahead" strategy (beating the best bidder or seller by exactly one tick) or if they trade at the absolute daily circuit limits.
 
 ## Dependencies
-*   `public.vw_mf_summary_analytics`: Supplies the `adjusted_nav` and `mf_ltp` (Latest Traded Price).
+*   `public.view_mf_summary_analytics`: Supplies the `adjusted_nav` and `mf_ltp` (Latest Traded Price).
 *   `public.raw_marketdepth_nepseapi_new`: Supplies the live `buy_market_depth` and `sell_market_depth` JSONB arrays.
 *   `public.analysis_config`: Supplies the noise filter threshold (`minimum_transaction_value`), the tick size (`tick_size_mf` or `tick_size_default`), and the dynamic circuit limit boundaries (`default_bid_discount_percent`, `default_ask_premium_percent`).
-*   `public.vw_profit_loss_analysis`: Supplies the user's active weighted average cost of capital (`WACC Rate`) and holdings amount (`my_quantity`) for calculating profit and loss.
+*   `public.view_profit_loss_analysis`: Supplies the user's active weighted average cost of capital (`WACC Rate`) and holdings amount (`my_quantity`) for calculating profit and loss.
+*   `public.wiki_average`: Supplies the 5-day moving averages (`ltp_avg_5d`, `volume_avg_5d`, `vwap_avg_5d`) to provide short-term trend context.
 
 ## Core Logic & Mathematics
 
@@ -37,3 +38,9 @@
    *   **`profit_loss_pct_at_ltp`**: `((mf_ltp - wacc_rate) / wacc_rate) * 100`
    *   **`profit_loss_pct_at_my_ask`**: `((my_ask - wacc_rate) / wacc_rate) * 100` (Simulated return if selling at the top ask price).
    *   **`profit_loss_pct_at_my_bid`**: `((my_bid - wacc_rate) / wacc_rate) * 100` (Simulated return if buying at the top bid price, effectively averaging cost down/up).
+
+5. **Moving Averages (Trend Context)**
+   Provides 5-day moving averages from the `wiki_average` table to help determine if the current bid/ask prices are above or below the recent short-term trend.
+   *   **`ltp_avg_5d`**: The 5-day average of the Last Traded Price.
+   *   **`volume_avg_5d`**: The 5-day average of traded volume.
+   *   **`vwap_avg_5d`**: The 5-day average of the Volume Weighted Average Price.

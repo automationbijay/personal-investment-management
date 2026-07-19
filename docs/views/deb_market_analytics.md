@@ -1,7 +1,7 @@
 # View: `deb_market_analytics`
 
 ## Overview
-`deb_market_analytics` aggregates foundational debenture analytics and live market pricing data. While `deb_ytm_analysis` focuses heavily on the yield calculations via the order book, this view provides a broader snapshot of the debenture's standing.
+`deb_market_analytics` aggregates foundational debenture analytics and live market pricing data. While `view_deb_ytm_analysis` focuses heavily on the yield calculations via the order book, this view provides a broader snapshot of the debenture's standing.
 
 ## Dependencies
 *   `public.raw_deb_nepsealpha_details`: Provides foundational debenture parameters such as `interest_rate`, `face_value` (1000), `maturity_date`, and `remaining_period_years`.
