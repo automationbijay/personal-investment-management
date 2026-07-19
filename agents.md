@@ -33,8 +33,8 @@ The PostgreSQL database (Supabase) uses specific prefixes to distinguish between
 We aggregate market information from four main sources:
 
 1.  **ShareSansar (`sharesansar.com`)**
-    *   *Purpose*: Fast scraping of weekly mutual fund NAV values and latest traded prices (LTP) of the mutual funds.
-    *   *Table*: `raw_mf_sharesansar_nav`
+    *   *Purpose*: Fast scraping of weekly mutual fund NAV values, latest traded prices (LTP) of mutual funds, and daily full market prices.
+    *   *Table*: `raw_mf_sharesansar_nav`, `raw_sharesansar_daily_price`, `raw_sharesansar_promoter_lockin`
 2.  **NEPSEAlpha (`nepsealpha.com`)**
     *   *Purpose*: Monthly mutual fund asset portfolios/stock holdings (`raw_mf_nepsealpha_assets_lastmonth`), asset allocations (`raw_mf_nepsealpha_assets_allocation`), and debenture details (`raw_deb_nepsealpha_details`).
 3.  **MeroShare (`meroshare.com`)**

@@ -26,6 +26,15 @@ These scripts fetch external data from the internet. They have been ported to Su
 *   **`sync-securities`** (`supabase/functions/sync-securities`)
     *   **Purpose**: Updates the master list of all tradable symbols (`raw_securities`) from the NEPSE API.
     *   **Schedule**: Weekly.
+*   **`sync_gold_rates`** (`supabase/functions/sync_gold_rates`)
+    *   **Purpose**: Scrapes gold and silver rates from multiple sources (Ashesh, HamroPatro) and stores the JSON data in `analysis_config` under the keys `gold_rates_ashesh` and `gold_rates_hamrobazar`.
+    *   **Schedule**: Daily.
+*   **`sync_sharesansar_daily_price`** (`supabase/functions/sync_sharesansar_daily_price`)
+    *   **Purpose**: Scrapes the daily "Today Share Price" list from ShareSansar and upserts it into `raw_sharesansar_daily_price`.
+    *   **Schedule**: Daily at 4:00 PM.
+*   **`sync_sharesansar_promoter_lockin`** (`supabase/functions/sync_sharesansar_promoter_lockin`)
+    *   **Purpose**: Scrapes the locked and unlocked promoter share details from ShareSansar and upserts into `raw_sharesansar_promoter_lockin`.
+    *   **Schedule**: Every 5 days at 5:00 PM (Cron: `0 17 */5 * *`).
 
 ## Deployment & Execution
 To deploy the Edge Functions, you must use the Supabase CLI:
@@ -35,4 +44,7 @@ To deploy the Edge Functions, you must use the Supabase CLI:
 supabase functions deploy check-market-status
 supabase functions deploy sync-securities
 supabase functions deploy sync-sharesansar
+supabase functions deploy sync_gold_rates
+supabase functions deploy sync_sharesansar_daily_price
+supabase functions deploy sync_sharesansar_promoter_lockin
 ```
