@@ -159,8 +159,8 @@ def setup_pg_cron():
         cur.execute(unschedule_sql)
         
         schedule_sql = """
-        SELECT cron.schedule('sync-averages-daily', '0 16 * * *', 'SELECT public.fn_cron_populate_averages();');
-        SELECT cron.schedule('sync-pnl-5hours', '0 */5 * * *', 'SELECT public.fn_cron_populate_profit_loss();');
+        SELECT cron.schedule('sync-averages-daily', '15 10 * * *', 'SELECT public.fn_cron_populate_averages();');
+        SELECT cron.schedule('sync-pnl-5hours', '15 */5 * * *', 'SELECT public.fn_cron_populate_profit_loss();');
         """
         cur.execute(schedule_sql)
         

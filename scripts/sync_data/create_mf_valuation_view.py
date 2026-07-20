@@ -38,10 +38,10 @@ def create_view():
                 ph_week."Close" AS price_on_weekly_nav,
                 (ast."quantity" * ph_week."Close") AS value_on_weekly_nav,
                 
-                live."LTP" AS todays_ltp,
-                (ast."quantity" * live."LTP") AS value_today,
+                live."lastTradedPrice" AS todays_ltp,
+                (ast."quantity" * live."lastTradedPrice") AS value_today,
                 
-                (ast."quantity" * live."LTP") - (ast."quantity" * ph_week."Close") AS value_change_since_weekly
+                (ast."quantity" * live."lastTradedPrice") - (ast."quantity" * ph_week."Close") AS value_change_since_weekly
 
             FROM raw_mf_nepsealpha_assets_lastmonth ast
             LEFT JOIN raw_mf_sharesansar_nav nav 
@@ -85,7 +85,7 @@ def create_view():
                     agg.*,
                     alloc."Capital_Market",
                     alloc."Non_Capital_Market",
-                    live_mf."LTP" AS mf_ltp,
+                    live_mf."lastTradedPrice" AS mf_ltp,
                     
                     ROUND((agg."SS weekly NAV" * (1 + (agg."value change percentate" / 100)))::numeric, 2) AS "adjusted_nav",
                     ROUND((agg."SS weekly NAV" * (1 + ((agg."value change percentate" / 100) * (alloc."Capital_Market" / 100))))::numeric, 2) AS "cap_market_adjusted_nav"
